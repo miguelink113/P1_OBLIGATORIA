@@ -1,0 +1,375 @@
+# Header (especifica la versión de la plantilla y una descripción)
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ECS Fargate + API Gateway REST API with API Key (Characters App with DynamoDB and ECR)"
+
+# Parámetros necesarios para la configuración de ECS, API Gateway y otros recursos
+Parameters:
+  EcrRepositoryUri:
+    Type: String
+    Description: URI of ECR repository
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC where ECS will be deployed
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of subnets (at least 2 for high availability)
+
+  DynamoDBTableName:
+    Type: String
+    Description: Table Name of DynamoDB for Characters
+    Default: "Characters"
+
+# Define los recursos a crear (ECS Fargate, NLB, API Gateway, etc.)
+Resources:
+  # Grupo de seguridad para las tareas ECS
+  ECSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ECS Tasks Security Group"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+
+  # Network Load Balancer para enrutar el tráfico a las tareas ECS
+  NetworkLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "characters-nlb-${AWS::StackName}"
+      Type: network
+      Scheme: internal
+      Subnets: !Ref SubnetIds
+
+  NLBTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "characters-tg-${AWS::StackName}"
+      Port: 8080
+      Protocol: TCP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckProtocol: TCP
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+
+  NLBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref NetworkLoadBalancer
+      Port: 8080
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+
+  # ECS Cluster, Task Definition y Service
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub "characters-cluster-${AWS::StackName}"
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/ecs/characters-${AWS::StackName}"
+      RetentionInDays: 14
+
+  EcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub "characters-task-${AWS::StackName}"
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      TaskRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/LabRole"
+      ContainerDefinitions:
+        - Name: character-api-container
+          Image: !Ref EcrRepositoryUri
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          Environment:
+            - Name: DYNAMODB_TABLE_NAME
+              Value: !Ref DynamoDBTableName
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - NLBListener
+      - NLBTargetGroup
+    Properties:
+      Cluster: !Ref EcsCluster
+      ServiceName: !Sub "characters-service-${AWS::StackName}"
+      TaskDefinition: !Ref EcsTaskDefinition
+      DesiredCount: 2
+      LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups: [!Ref ECSSecurityGroup]
+      LoadBalancers:
+        - ContainerName: character-api-container
+          ContainerPort: 8080
+          TargetGroupArn: !Ref NLBTargetGroup
+
+  # API Gateway REST API con integración al NLB
+  VPCLink:
+    Type: AWS::ApiGateway::VpcLink
+    Properties:
+      Name: !Sub "characters-vpc-link-${AWS::StackName}"
+      TargetArns: [!Ref NetworkLoadBalancer]
+
+  RestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub "characters-api-${AWS::StackName}"
+      Description: API Gateway para Characters
+
+  # Recursos y Métodos
+  CharactersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !GetAtt RestAPI.RootResourceId
+      PathPart: characters
+
+  CharacterIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !Ref CharactersResource
+      PathPart: "{id}"
+
+  PostCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          !Sub
+            - "http://${NlbDns}:8080/characters"
+            - { NlbDns: !GetAtt NetworkLoadBalancer.DNSName }
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VPCLink
+
+  GetCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        Uri:
+          !Sub
+            - "http://${NlbDns}:8080/characters"
+            - { NlbDns: !GetAtt NetworkLoadBalancer.DNSName }
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VPCLink
+
+  OptionsCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  GetCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      RequestParameters:
+        method.request.path.id: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: GET
+        Uri:
+          !Sub
+            - "http://${NlbDns}:8080/characters/{id}"
+            - { NlbDns: !GetAtt NetworkLoadBalancer.DNSName }
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VPCLink
+        RequestParameters:
+          integration.request.path.id: method.request.path.id
+
+  PutCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      RequestParameters:
+        method.request.path.id: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: PUT
+        Uri:
+          !Sub
+            - "http://${NlbDns}:8080/characters/{id}"
+            - { NlbDns: !GetAtt NetworkLoadBalancer.DNSName }
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VPCLink
+        RequestParameters:
+          integration.request.path.id: method.request.path.id
+
+  DeleteCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      ApiKeyRequired: true
+      RequestParameters:
+        method.request.path.id: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: DELETE
+        Uri:
+          !Sub
+            - "http://${NlbDns}:8080/characters/{id}"
+            - { NlbDns: !GetAtt NetworkLoadBalancer.DNSName }
+        ConnectionType: VPC_LINK
+        ConnectionId: !Ref VPCLink
+        RequestParameters:
+          integration.request.path.id: method.request.path.id
+
+  OptionsCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 200
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  # API Deployment y Stage
+  APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - PostCharactersMethod
+      - GetCharactersMethod
+      - OptionsCharactersMethod
+      - GetCharacterIdMethod
+      - PutCharacterIdMethod
+      - DeleteCharacterIdMethod
+      - OptionsCharacterIdMethod
+    Properties:
+      RestApiId: !Ref RestAPI
+
+  APIStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestAPI
+      DeploymentId: !Ref APIDeployment
+      StageName: prod
+
+  # API Key y Usage Plan
+  APIKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: !Sub "characters-api-key-${AWS::StackName}"
+      Enabled: true
+
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    DependsOn: APIStage
+    Properties:
+      UsagePlanName: !Sub "characters-usage-plan-${AWS::StackName}"
+      ApiStages:
+        - ApiId: !Ref RestAPI
+          Stage: !Ref APIStage
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref APIKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
+
+# Valores que mostrará CloudFormation tras el despliegue
+Outputs:
+  CharacterApiUrl:
+    Description: "URL base para la API de Characters"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+  CharacterNlbDnsName:
+    Description: "DNS del Network Load Balancer"
+    Value: !GetAtt NetworkLoadBalancer.DNSName
+
+  ApiKeyId:
+    Description: "API Key ID (usa la consola de API Gateway para obtener el valor)"
+    Value: !Ref APIKey

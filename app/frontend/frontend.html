@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablón de Personajes del Gremio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #4E342E; 
+            min-height: 100vh;
+            padding: 30px;
+            font-family: 'IM Fell English SC', serif; 
+            color: #3e2723; 
+            font-size: 16px; 
+        }
+
+        @media (min-width: 1024px) {
+            .board {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important; 
+            }
+        }
+        
+        @media (min-width: 640px) and (max-width: 1023px) {
+            .board {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            }
+        }
+
+        .config-overlay, .modal, #customModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7); 
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.active, .config-overlay.active, #customModal.active { 
+            display: flex; 
+        }
+
+        .config-modal, .modal-content, .custom-modal-content {
+            background: #fdf5e6; 
+            padding: 40px;
+            border-radius: 5px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 10px 10px 0px rgba(0, 0, 0, 0.4); 
+            border: 5px solid #a1887f; 
+            font-family: -apple-system, sans-serif; 
+            position: relative;
+        }
+        
+        .modal-content h2, .config-modal h2, .custom-modal-content h2 {
+            margin-bottom: 30px;
+            color: #3e2723;
+            font-family: 'Cinzel', serif;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .cards {
+            min-height: 20px;
+        }
+
+        .level-badge { 
+            padding: 5px 12px;
+            border-radius: 0;
+            font-size: 14px; 
+            font-weight: 700;
+            border: 1px solid #3e2723;
+            box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.2);
+            font-family: 'Cinzel', serif;
+        }
+        .level-1 { background: #d9e7d9; color: #388e3c; } 
+        .level-5 { background: #ffe0b2; color: #ef6c00; } 
+        .level-10 { background: #ffcdd2; color: #c62828; } 
+        .level-20 { background: #424242; color: gold; border-color: gold; } 
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-family: 'Cinzel', serif;
+            color: #3e2723;
+            text-transform: uppercase;
+        }
+
+        .config-modal input,
+        .modal-content input,
+        .modal-content select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 2px solid #a1887f;
+            border-radius: 3px;
+            font-size: 16px; 
+            background-color: #fffaf0;
+            box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: #fdf5e6; 
+            padding: 20px 30px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            border: 3px solid #a1887f;
+        }
+
+        .header h1 {
+            color: #3e2723;
+            font-size: 32px;
+            font-family: 'Cinzel', serif; 
+            text-shadow: 1px 1px 1px #fff;
+        }
+
+        .btn {
+            padding: 10px 18px; 
+            border: 2px solid #3e2723;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 16px; 
+            transition: all 0.2s;
+            font-family: 'IM Fell English SC', serif;
+            box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary {
+            background: #c0c0c0; 
+            color: #3e2723;
+        }
+
+        .btn-primary:hover {
+            background: #a9a9a9;
+            box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #3e2723;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+            box-shadow: 1px 1px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: 1fr; 
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .column {
+            background: rgba(253, 245, 230, 0.9); 
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 100px; 
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid #a1887f;
+        }
+
+        .column-header {
+            border-bottom: 2px dashed #3e2723; 
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .column-title {
+            font-size: 24px; 
+            font-weight: 700;
+            color: #3e2723;
+            font-family: 'Cinzel', serif;
+            text-transform: uppercase;
+        }
+
+        .column-count {
+            background: #6d4c41;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 3px;
+            font-size: 14px; 
+            font-weight: 400;
+            font-family: -apple-system, sans-serif;
+        }
+
+        .card {
+            background: #fffff0; 
+            border: 2px solid #3e2723;
+            border-radius: 0; 
+            padding: 15px;
+            cursor: default; 
+            transition: all 0.3s;
+            box-shadow: 3px 3px 0px rgba(0, 0, 0, 0.2); 
+            position: relative;
+        }
+
+        .card:hover {
+            box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.3);
+            transform: translate(-2px, -2px); 
+        }
+
+        .card-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #3e2723;
+            font-size: 18px; 
+            border-bottom: 1px dotted #3e2723;
+            padding-bottom: 5px;
+        }
+
+        .card-description {
+            font-size: 16px; 
+            color: #4e342e;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
+
+        .card-meta {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #c0c0c0;
+        }
+        
+        .card-tags { 
+            display: block;
+            margin-top: 8px;
+            font-size: 14px; 
+            color: #666; 
+            font-family: -apple-system, sans-serif;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            border-top: 1px dashed #d0d0d0;
+            padding-top: 10px;
+        }
+
+        .card-actions button {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .error {
+            font-family: -apple-system, sans-serif;
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #c62828;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="configOverlay" class="config-overlay active">
+        <div class="config-modal">
+            <h2>📜 Configuración de API</h2>
+            <div class="form-group">
+                <label>URL de la API</label>
+                <input type="text" id="apiUrl" placeholder="Ej: https://abcdef.execute-api.us-east-1.amazonaws.com/prod">
+            </div>
+            <div class="form-group">
+                <label>Clave de la API (x-api-key)</label>
+                <input type="password" id="apiKey" placeholder="Clave de la API">
+            </div>
+            <button onclick="saveConfig()" class="btn btn-primary w-full">Conectar</button>
+        </div>
+    </div>
+
+    <div id="customModal" class="modal">
+        <div class="custom-modal-content">
+            <h2 id="customModalTitle"></h2>
+            <p id="customModalMessage" class="mb-6"></p>
+            <div class="form-actions" id="customModalActions">
+                <button id="customModalCancel" class="btn btn-secondary">Cancelar</button>
+                <button id="customModalConfirm" class="btn btn-primary">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app" style="display: none;">
+        <div class="header">
+            <h1>📜 Gestor de Personajes</h1>
+            <div class="header-actions flex gap-3">
+                <button class="btn btn-primary" onclick="openCreateModal()">+ Crear Personaje</button>
+                <button class="btn btn-secondary hidden sm:inline-block" onclick="refreshBoard()">🔄 Actualizar Tablón</button>
+                <button class="btn btn-secondary" onclick="logout()">⚙️ Configuración API</button>
+            </div>
+        </div>
+
+        <div id="errorContainer"></div>
+        <div id="loading" class="loading" style="display: none; color: #fffaf0; text-shadow: 1px 1px 2px #3e2723;">Cargando datos...</div>
+
+        <div class="board" id="board">
+            <div class="column">
+                <div class="column-header">
+                    <span class="column-title">🗡️ Guerreros</span>
+                    <span class="column-count" id="count-Guerrero">0</span>
+                </div>
+                <div class="cards" data-clase="Guerrero"></div>
+            </div>
+
+            <div class="column">
+                <div class="column-header">
+                    <span class="column-title">🔮 Magos</span>
+                    <span class="column-count" id="count-Mago">0</span>
+                </div>
+                <div class="cards" data-clase="Mago"></div>
+            </div>
+
+            <div class="column">
+                <div class="column-header">
+                    <span class="column-title">🔪 Pícaros</span>
+                    <span class="column-count" id="count-Pícaro">0</span>
+                </div>
+                <div class="cards" data-clase="Pícaro"></div>
+            </div>
+
+            <div class="column">
+                <div class="column-header">
+                    <span class="column-title">✝️ Clérigos</span>
+                    <span class="column-count" id="count-Clérigo">0</span>
+                </div>
+                <div class="cards" data-clase="Clérigo"></div>
+            </div>
+
+            <div class="column">
+                <div class="column-header">
+                    <span class="column-title">🎵 Bardos</span>
+                    <span class="column-count" id="count-Bardo">0</span>
+                </div>
+                <div class="cards" data-clase="Bardo"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="characterModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Crear Nuevo Personaje</h2>
+            <form id="characterForm">
+                <div class="form-group">
+                    <label>Nombre *</label>
+                    <input type="text" id="characterNombre" required maxlength="100">
+                </div>
+
+                <div class="form-group">
+                    <label>Clase (Asignada a Columna)</label>
+                    <select id="characterClase"> 
+                        <option value="Guerrero">Guerrero</option>
+                        <option value="Mago">Mago</option>
+                        <option value="Pícaro">Pícaro</option>
+                        <option value="Clérigo">Clérigo</option>
+                        <option value="Bardo">Bardo</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Raza</label>
+                    <select id="characterRaza">
+                        <option value="Humano">Humano</option>
+                        <option value="Elfo">Elfo</option>
+                        <option value="Enano">Enano</option>
+                        <option value="Orco">Orco</option>
+                        <option value="Mediano">Mediano</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Nivel (1-20)</label>
+                    <input type="number" id="characterNivel" min="1" max="20" value="1">
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('characterModal')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    let API_URL = '';
+    let API_KEY = '';
+    let currentCharacterId = null;
+    let characters = [];
+    
+    const CLASSES = ['Guerrero', 'Mago', 'Pícaro', 'Clérigo', 'Bardo'];
+
+    function showCustomModal(title, message, isConfirmation = true) {
+        return new Promise(resolve => {
+            const modal = document.getElementById('customModal');
+            document.getElementById('customModalTitle').textContent = title;
+            document.getElementById('customModalMessage').textContent = message;
+            const actionsContainer = document.getElementById('customModalActions');
+            
+            const confirmBtn = document.getElementById('customModalConfirm');
+            const cancelBtn = document.getElementById('customModalCancel');
+            confirmBtn.onclick = null;
+            cancelBtn.onclick = null;
+
+            if (isConfirmation) {
+                actionsContainer.style.display = 'flex';
+                confirmBtn.textContent = 'Aceptar';
+                
+                confirmBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    resolve(true);
+                };
+                cancelBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    resolve(false);
+                };
+            } else {
+                actionsContainer.style.display = 'flex'; 
+                cancelBtn.style.display = 'none'; 
+                confirmBtn.textContent = 'Cerrar'; 
+
+                confirmBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    cancelBtn.style.display = 'inline-block'; 
+                    resolve(true);
+                };
+            }
+            
+            modal.classList.add('active');
+        });
+    }
+    
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    window.onload = () => {
+        const savedUrl = localStorage.getItem('apiUrl');
+        const savedKey = localStorage.getItem('apiKey');
+        
+        if (savedUrl && savedKey) {
+            document.getElementById('apiUrl').value = savedUrl;
+            document.getElementById('apiKey').value = savedKey;
+            saveConfig(false); 
+        } else {
+             document.getElementById('configOverlay').classList.add('active');
+        }
+    };
+
+    async function saveConfig(showError = true) {
+        const url = document.getElementById('apiUrl').value.trim();
+        const key = document.getElementById('apiKey').value.trim();
+
+        if (!url || !key) {
+            if(showError) {
+                await showCustomModal('Faltan Datos', '¡Faltan datos de conexión (URL y Key)!', false);
+            }
+            return;
+        }
+
+        API_URL = url.endsWith('/') ? url.slice(0, -1) : url;
+        API_KEY = key;
+
+        localStorage.setItem('apiUrl', API_URL);
+        localStorage.setItem('apiKey', API_KEY);
+
+        document.getElementById('configOverlay').classList.remove('active');
+        document.getElementById('app').style.display = 'block';
+
+        loadCharacters();
+    }
+
+    async function logout() {
+        const confirmed = await showCustomModal(
+            'Cambiar Configuración', 
+            '¿Seguro que quieres cambiar la configuración de la API? Se cerrará la sesión actual.', 
+            true
+        );
+        
+        if (confirmed) {
+            document.getElementById('configOverlay').classList.add('active');
+            document.getElementById('app').style.display = 'none';
+        }
+    }
+
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+        const options = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': API_KEY
+            }
+        };
+
+        if (body) {
+            options.body = JSON.stringify(body);
+        }
+
+        let response;
+        for (let i = 0; i < 3; i++) {
+            try {
+                response = await fetch(`${API_URL}${endpoint}`, options);
+                if (response.status !== 429) break; 
+                
+                const delay = Math.pow(2, i) * 1000;
+                console.log(`Rate limit excedido (429). Reintentando en ${delay / 1000}s...`);
+                await new Promise(res => setTimeout(res, delay));
+
+            } catch (e) {
+                if (i === 2) throw new Error('Error de red al conectar con la API.');
+                console.error(`Error de fetch. Reintentando...: ${e.message}`);
+                await new Promise(res => setTimeout(res, 1000));
+            }
+        }
+
+        if (!response || !response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
+            throw new Error(error.error || `Error en la API: ${response?.status || 'desconocido'}.`);
+        }
+
+        if (method === 'DELETE') {
+            return null;
+        }
+
+        return await response.json();
+    }
+
+    async function loadCharacters() {
+        try {
+            showLoading(true);
+            hideError();
+            
+            characters = await apiRequest('/characters'); 
+            renderBoard();
+        } catch (error) {
+            showError(`Error al cargar personajes: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function renderBoard() {
+        CLASSES.forEach(clase => {
+            const container = document.querySelector(`.cards[data-clase="${clase}"]`);
+            container.innerHTML = '';
+            
+            const classCharacters = characters
+                .filter(c => c.clase === clase)
+                .sort((a, b) => b.nivel - a.nivel); 
+
+            classCharacters.forEach(character => {
+                container.appendChild(createCard(character));
+            });
+
+            document.getElementById(`count-${clase}`).textContent = classCharacters.length;
+        });
+    }
+    
+    function getLevelBadgeClass(level) {
+        if (level >= 1 && level <= 4) return 'level-1';
+        if (level >= 5 && level <= 9) return 'level-5';
+        if (level >= 10 && level <= 19) return 'level-10';
+        if (level === 20) return 'level-20';
+        return 'level-1';
+    }
+
+    function createCard(character) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.draggable = false; 
+        card.dataset.characterId = character.character_id; 
+        
+        const metaInfo = `Linaje: ${character.raza}`;
+        const creationDate = character.created_at ? new Date(character.created_at).toLocaleDateString('es-ES') : 'Desconocido';
+        const badgeClass = getLevelBadgeClass(character.nivel);
+
+        card.innerHTML = `
+            <div class="card-title">${character.nombre}</div>
+            <div class="card-description">${metaInfo}</div>
+            <div class="card-meta">
+                <span class="level-badge ${badgeClass}">NIVEL ${character.nivel}</span>
+            </div>
+            <div class="card-tags">Registro: ${creationDate}</div>
+            <div class="card-actions">
+                <button class="btn btn-primary" onclick="event.stopPropagation(); editCharacter('${character.character_id}')">✏️ Editar</button>
+                <button class="btn btn-secondary" onclick="event.stopPropagation(); deleteCharacter('${character.character_id}')">🗑️ Eliminar</button>
+            </div>
+        `;
+
+        return card;
+    }    
+    async function updateCharacterClase(characterId, newClase) {
+        const character = characters.find(c => c.character_id === characterId);
+        
+        const data = {
+            nombre: character.nombre,
+            raza: character.raza,
+            clase: newClase,
+            nivel: character.nivel
+        };
+        
+        const updatedCharacter = await apiRequest(`/characters/${characterId}`, 'PUT', data); 
+
+        const index = characters.findIndex(c => c.character_id === characterId);
+        characters[index] = updatedCharacter;
+        renderBoard();
+    }
+
+
+
+    function openCreateModal() {
+        currentCharacterId = null;
+        document.getElementById('modalTitle').textContent = 'Crear Nuevo Personaje';
+        document.getElementById('characterForm').reset();
+        document.getElementById('characterClase').disabled = false;
+        document.getElementById('characterModal').classList.add('active');
+        hideError(); 
+    }
+
+    async function editCharacter(characterId) {
+        currentCharacterId = characterId;
+        const character = characters.find(c => c.character_id === characterId);
+
+        document.getElementById('modalTitle').textContent = `Editar Personaje: ${character.nombre}`;
+        document.getElementById('characterNombre').value = character.nombre;
+        document.getElementById('characterRaza').value = character.raza;
+        document.getElementById('characterClase').value = character.clase;
+        
+        document.getElementById('characterClase').disabled = false; 
+        
+        document.getElementById('characterNivel').value = character.nivel;
+
+        document.getElementById('characterModal').classList.add('active');
+        hideError(); 
+    }
+
+    document.getElementById('characterForm').onsubmit = async (e) => {
+        e.preventDefault();
+        
+        const nivelValue = parseInt(document.getElementById('characterNivel').value);
+        if (nivelValue < 1 || nivelValue > 20) {
+            showError('El Nivel debe estar entre 1 y 20.');
+            return;
+        }
+
+        const data = {
+            nombre: document.getElementById('characterNombre').value,
+            raza: document.getElementById('characterRaza').value,
+            clase: document.getElementById('characterClase').value, 
+            nivel: nivelValue,
+        };
+
+        try {
+            showLoading(true);
+            let result;
+            if (currentCharacterId) {
+                result = await apiRequest(`/characters/${currentCharacterId}`, 'PUT', data);
+                const index = characters.findIndex(c => c.character_id === currentCharacterId);
+                characters[index] = result;
+            } else {
+                result = await apiRequest('/characters', 'POST', data);
+                characters.push(result);
+            }
+
+            renderBoard();
+            closeModal('characterModal');
+            hideError();
+        } catch (error) {
+            showError(`Error al guardar: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    };
+
+    async function deleteCharacter(characterId) {
+        const confirmed = await showCustomModal(
+            'Eliminar Personaje',
+            '¿Estás seguro de ELIMINAR este personaje del tablón?',
+            true
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            showLoading(true);
+            await apiRequest(`/characters/${characterId}`, 'DELETE');
+            characters = characters.filter(c => c.character_id !== characterId);
+            renderBoard();
+        } catch (error) {
+            showError(`Error al eliminar: ${error.message}`);
+        } finally {
+            showLoading(false);
+        }
+    }
+
+    function refreshBoard() {
+        loadCharacters();
+    }
+
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    function showError(message) {
+        const container = document.getElementById('errorContainer');
+        container.innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    function hideError() {
+        document.getElementById('errorContainer').innerHTML = '';
+    }
+
+    document.getElementById('characterModal').onclick = (e) => {
+        if (e.target.id === 'characterModal') {
+            closeModal('characterModal');
+        }
+    };
+</script>
+</body>
+</html>

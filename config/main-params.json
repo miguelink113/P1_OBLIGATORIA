@@ -1,0 +1,18 @@
+[
+    {
+        "ParameterKey": "EcrRepositoryUri",
+        "ParameterValue": "767398154780.dkr.ecr.us-east-1.amazonaws.com/p1-app-repo:latest"
+    },
+    {
+        "ParameterKey": "VpcId",
+        "ParameterValue": "vpc-037a216049c9984ab" 
+    },
+    {
+        "ParameterKey": "SubnetIds",
+        "ParameterValue": "subnet-045494ea85927256d,subnet-0371afbd0f8ee7165" 
+    },
+    {
+        "ParameterKey": "DynamoDBTableName",
+        "ParameterValue": "Characters-BDD-Stack-P1" 
+    }
+]
