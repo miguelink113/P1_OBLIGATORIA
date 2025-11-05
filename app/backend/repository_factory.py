@@ -1,6 +1,6 @@
 from typing import Dict, Type
-from app.backend.db.repository_base import CharacterRepository
-from app.backend.db.repository_dynamodb import DynamoDBCharacterRepository
+from backend.db.repository_base import CharacterRepository
+from backend.db.repository_dynamodb import DynamoDBCharacterRepository
 
 class DatabaseFactory:
     """

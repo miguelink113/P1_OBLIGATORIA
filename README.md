@@ -40,11 +40,10 @@ Despliega el recurso de base de datos.
 
 1.  **Desplegar la Pila de BDD (CloudFormation):**
     ```bash
-    aws cloudformation create-stack \
-      --stack-name BDD-Stack-P1 \
-      --template-body file://config/bd_dynamodb.yml \
-      --region $REGION \
-      --capabilities CAPABILITY_IAM
+    aws cloudformation create-stack 
+      --stack-name BDD-Stack-P1 
+      --template-body file://config/bd_dynamodb.yml
+      --region $REGION 
     aws cloudformation wait stack-create-complete --stack-name BDD-Stack-P1 --region $REGION
     ```
 2.  **Obtener el Nombre de la Tabla:** (Actualizar `ecs-params.json` con este valor).
@@ -62,7 +61,7 @@ Construcción de la imagen Docker y subida al repositorio de AWS.
 1.  **Crear el Repositorio ECR:**
     ```bash
     aws cloudformation create-stack 
-    --stack-name ECR-Stack-P1 
+    --stack-name ecr-stack-p1 
     --template-body file://config/ecr.yml 
     --region $REGION
     aws cloudformation wait stack-create-complete --stack-name ECR-Stack-P1 --region $REGION
@@ -75,6 +74,9 @@ Construcción de la imagen Docker y subida al repositorio de AWS.
     aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_URI
     ```
 4.  **Construir y Subir la Imagen:**
+
+    IMPORTANTE HABER INICIADO DOCKER DESKTOP
+
     ```bash
     docker build -t p1-app-repo .
     docker tag p1-app-repo:latest $ECR_URI:latest
@@ -87,41 +89,41 @@ Despliegue de los recursos de computación (ECS Fargate), balanceo de carga (NLB
 
 1.  **Desplegar la Pila Completa (CloudFormation):**
     ```bash
-    aws cloudformation create-stack \
-      --stack-name ECS-Stack-P1 \
-      --template-body file://config/main.yml \
-      --parameters file://config/main-params.json \
-      --region $REGION \
-      --capabilities CAPABILITY_NAMED_IAM
+    aws cloudformation create-stack 
+      --stack-name ECS-Stack-P1 
+      --template-body file://config/main.yml 
+      --parameters file://config/main-params.json 
+      --region $REGION 
     aws cloudformation wait stack-create-complete --stack-name ECS-Stack-P1 --region $REGION
     ```
 2.  **Obtener los Endpoints de Acceso (Outputs):**
     * **2.1. URL Base de la API Gateway:** (URL pública para testing)
         ```bash
-        aws cloudformation describe-stacks \
-          --stack-name ECS-Stack-P1 \
-          --query "Stacks[0].Outputs[?OutputKey=='CharacterApiUrl'].OutputValue" \
+        aws cloudformation describe-stacks 
+          --stack-name ECS-Stack-P1 
+          --query "Stacks[0].Outputs[?OutputKey=='CharacterApiUrl'].OutputValue"
           --output text
         ```
     * **2.2. ID de la API Key:** (Necesario para obtener el valor secreto en la Consola)
         ```bash
-        aws cloudformation describe-stacks \
-          --stack-name ECS-Stack-P1 \
-          --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" \
+        aws cloudformation describe-stacks 
+          --stack-name ECS-Stack-P1 
+          --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" 
           --output text
         ```
     * **2.3. Valor secreto de la API Key:** (x-api-key)
         ```bash
-        aws cloudformation describe-stacks \
-          --stack-name ECS-Stack-P1 \
-          --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" \
-          --output text
+            aws apigateway get-api-key
+            --api-key a1b2c3d4e5
+            --include-value true
+            --query 'value'
+            --output text
         ```
     * **2.4. DNS del Load Balancer (Interno):** (Para verificación interna, opcional)
         ```bash
-        aws cloudformation describe-stacks \
-          --stack-name ECS-Stack-P1 \
-          --query "Stacks[0].Outputs[?OutputKey=='CharacterNlbDnsName'].OutputValue" \
+        aws cloudformation describe-stacks 
+          --stack-name ECS-Stack-P1 
+          --query "Stacks[0].Outputs[?OutputKey=='CharacterNlbDnsName'].OutputValue" 
           --output text
         ```
 

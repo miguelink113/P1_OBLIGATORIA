@@ -13,13 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # El contenido local de P1_OBLIGATORIA/app/ se copia a /app/app/ en el contenedor.
 COPY app/ .
 
-# Asegúrate de que tienes archivos __init__.py en app/, app/backend/ y app/model/
-
 # --- FIN DE COPIA ---
 
 # Documentar el puerto expuesto
 EXPOSE 8080
 
-# Comando para ejecutar la aplicación como un módulo: 'app.backend.app_backend'.
-# La ruta del módulo ahora incluye 'app' porque está en /app/app/backend/
-CMD ["python", "app_backend"]
+# Comando para ejecutar la aplicación como un módulo: 'backend.app_backend.py'.
+CMD ["python", "app_backend.py"]

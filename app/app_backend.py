@@ -3,9 +3,9 @@ from flask import Flask, request, jsonify
 from pydantic import ValidationError
 from botocore.exceptions import ClientError
 
-from app.model.character import Character
-from app.backend.repository_factory import DatabaseFactory
-from app.backend.db.repository_base import CharacterRepository
+from model.character import Character
+from backend.repository_factory import DatabaseFactory
+from backend.db.repository_base import CharacterRepository
 
 app = Flask(__name__)
 

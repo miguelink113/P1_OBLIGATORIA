@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import List, Optional
-from app.model.character import Character
+from model.character import Character
 
 class CharacterRepository(ABC):
     """

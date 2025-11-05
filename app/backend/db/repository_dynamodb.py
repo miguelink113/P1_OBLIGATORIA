@@ -2,8 +2,8 @@ import boto3
 import os
 import datetime # NECESARIO para manejar la marca de tiempo de la actualización
 from typing import List, Optional, Dict # Importamos Dict para el PUT
-from app.backend.db.repository_base import CharacterRepository
-from app.model.character import Character
+from backend.db.repository_base import CharacterRepository
+from model.character import Character
 
 TABLE_NAME = os.getenv('DYNAMODB_TABLE_NAME', 'Characters')
 
