@@ -22,7 +22,7 @@ El proyecto está organizado para separar claramente la lógica de la aplicació
 
 ## ⚙️ Proceso de Despliegue Detallado (AWS CLI)
 
-### FASE 0: Prerrequisitos y Configuración Inicial
+### SECCIÓN 0: Prerrequisitos y Configuración Inicial
 
 1.  **Verificación de Archivos:** Confirme que `bd_dynamodb.yml`, `ecr.yml`, `main.yml`, `Dockerfile` y `ecs-params.json` están actualizados y son correctos.
 2.  **Configuración de AWS CLI:** Obtenga las credenciales temporales (`aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`) y configure la CLI.
@@ -34,7 +34,7 @@ El proyecto está organizado para separar claramente la lógica de la aplicació
     ```
 3.  **Docker Desktop:** Asegúrese de que Docker Desktop está en ejecución para la fase de contenedorización.
 
-### FASE 1: Base de Datos (DynamoDB)
+### SECCIÓN 1: Base de Datos (DynamoDB)
 
 Despliega el recurso de base de datos.
 
@@ -55,7 +55,7 @@ Despliega el recurso de base de datos.
       --output text
     ```
 
-### FASE 2: Contenedorización y Registro (ECR)
+### SECCIÓN 2: Contenedorización y Registro (ECR)
 
 Construcción de la imagen Docker y subida al repositorio de AWS.
 
@@ -81,7 +81,7 @@ Construcción de la imagen Docker y subida al repositorio de AWS.
     docker push $ECR_URI:latest
     ```
 
-### FASE 3: Despliegue de Infraestructura y Servicios (ECS & API Gateway)
+### SECCIÓN 3: Despliegue de Infraestructura y Servicios (ECS & API Gateway)
 
 Despliegue de los recursos de computación (ECS Fargate), balanceo de carga (NLB) y la capa de exposición pública (API Gateway, VPC Link).
 
@@ -125,11 +125,11 @@ Despliegue de los recursos de computación (ECS Fargate), balanceo de carga (NLB
           --output text
         ```
 
-### FASE 4: Pruebas Funcionales (CRUD)
+### SECCIÓN 4: Pruebas Funcionales (CRUD)
 
 Utilice la **CharacterApiUrl** y el valor secreto de la **API Key** (en el header `x-api-key`) para verificar el correcto funcionamiento de las operaciones CRUD (POST, GET, PUT, DELETE) mediante el script de `test/test_api_cycle.py` (prueba los 5 endpoints establecidos de manera automática) o mediante la interfaz gráfica y a mano tras conectar con la API `frontend/frontend.html`
 
-### FASE 5: Limpieza de Recursos
+### SECCIÓN 5: Limpieza de Recursos
 
 **Importante:** Elimine todos los recursos para evitar cargos inesperados.
 
@@ -158,3 +158,14 @@ Utilice la **CharacterApiUrl** y el valor secreto de la **API Key** (en el heade
     ```bash
     aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --region $REGION
     ```
+
+## 💰 Análisis del Costo
+
+| Servicio | Descripción | Costo mensual estimado | Costo anual estimado |
+| :--- | :--- | ---: | ---: |
+| **Amazon DynamoDB (On-Demand)** | Almacén NoSQL para los personajes, con modo pago por solicitud para 100 mil lecturas y escrituras. | USD 0.32 | USD 3.84 |
+| **Amazon ECR (Elastic Container Registry)** | Almacenamiento de las imágenes Docker del servicio de Characters, unos 0.65 GB por mes debido a las dos imágenes de Docker que almacena. | USD 0.07 | USD 0.84 |
+| **Amazon ECS (Fargate)** | Ejecución del contenedor con 2 tareas activas (0.25 vCPU, 0.5 GB RAM). | USD 18.02 | USD 216.24 |
+| **Amazon API Gateway (REST API)** | Interfaz de acceso HTTP a la API Characters. Costos por llamadas (100 mil llamadas ≈ USD 3.50). | USD 0.35 | USD 4.20 |
+| **AWS Network Load Balancer (NLB)** | Balanceo interno del tráfico entre tareas ECS. | USD 16.47 | USD 197.64 |
+| **Total estimado** | Se ha considerado un entorno de desarrollo o de bajo tráfico | **USD 35.23** | **USD 422.76** |
