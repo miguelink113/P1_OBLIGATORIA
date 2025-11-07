@@ -6,17 +6,18 @@ Este repositorio contiene la aplicación desarrollada para la Práctica Obligato
 
 El proyecto está organizado para separar claramente la lógica de la aplicación, las configuraciones de despliegue y los recursos auxiliares.
 
-| Directorio/Archivo | Contenido Principal | Propósito |
+| Directorio / Archivo | Contenido Principal | Propósito |
 | :--- | :--- | :--- |
-| **`app/backend/`** | Lógica de la API, módulos de base de datos. | Contiene el núcleo del servidor, incluyendo la definición de la API (`app_backend.py`) y la gestión de la persistencia (`db/`). |
-| **`app/frontend/`** | Archivos de interfaz de usuario. | Aloja el archivo `frontend.html` para la interacción básica del usuario. |
-| **`app/model/`** | Clases de datos. | Define la estructura de los objetos de la aplicación (`character.py`). |
-| **`app/test/`** | Scripts de pruebas. | Contiene un script de prueba de las operaciones CRUD desarrolladas (`test_api_cycle.py`). |
-| **`config/`** | Plantillas de CloudFormation (YAML). | Define la infraestructura. Incluye `bd_dynamodb.yml` (base de datos), `ecr.yml` (Repositorio Docker) y `main.yml` (ECS, NLB, API Gateway). |
-| **`Dockerfile`** | Definición del contenedor. | Contiene las instrucciones para construir la imagen de Docker de la aplicación. |
-| **`ecs-params.json`** | Archivo de parámetros. | Proporciona variables clave (URI de ECR, IDs de VPC/Subredes, Nombre de Tabla DynamoDB) para la plantilla `main.yml` de CloudFormation. |
-| **`requirements.txt`** | Dependencias de Python. | Lista de librerías Python requeridas por la aplicación. |
-| **`venv/`** | Entorno virtual de Python. | Entorno de desarrollo aislado para gestionar las dependencias localmente. |
+| **`acoplada/app/backend/`** | Lógica de la API, módulos de base de datos. | Contiene el núcleo del servidor, incluyendo la definición de la API (`app_backend.py`) y la gestión de la persistencia (`db/`). |
+| **`acoplada/app/backend/model/`** | Clases de datos. | Define la estructura de los objetos de la aplicación (`character.py`). |
+| **`frontend/`** | Archivos de interfaz de usuario. | Contiene el archivo `frontend.html` para la interacción básica del usuario. |
+| **`acoplada/config/`** | Plantillas de CloudFormation (YAML). | Define la infraestructura. Incluye `bd_dynamodb.yml` (base de datos), `ecr.yml` (Repositorio Docker) y `ecs.yml` (ECS, NLB, API Gateway). |
+| **`desacoplada/`** | Base para la versión desacoplada. | Espacio reservado para una versión con Lambdas + API Gateway + DynamoDB. |
+| **`test/`** | Scripts de pruebas. | Incluye `AWS API Characters.postman_collection.json` (colección Postman) y `test_api_cycle.py` (test automático de CRUD). |
+| **`Dockerfile`** | Definición del contenedor. | Instrucciones para construir la imagen Docker de la aplicación monolítica. |
+| **`acoplada/config/ecs-params.json`** | Archivo de parámetros. | Contiene variables clave (URI de ECR, IDs de VPC/Subredes, Nombre de Tabla DynamoDB). |
+| **`requirements.txt`** | Dependencias de Python. | Lista de librerías requeridas por la aplicación. |
+| **`venv/`** | Entorno virtual de Python. | Entorno de desarrollo aislado para dependencias locales. |
 
 ---
 
@@ -24,7 +25,7 @@ El proyecto está organizado para separar claramente la lógica de la aplicació
 
 ### SECCIÓN 0: Prerrequisitos y Configuración Inicial
 
-1.  **Verificación de Archivos:** Confirme que `bd_dynamodb.yml`, `ecr.yml`, `main.yml`, `Dockerfile` y `ecs-params.json` están actualizados y son correctos.
+1.  **Verificación de Archivos:** Confirme que `bd_dynamodb.yml`, `ecr.yml`, `ecs.yml`, `Dockerfile` y `ecs-params.json` están actualizados y son correctos.
 2.  **Configuración de AWS CLI:** Obtenga las credenciales temporales (`aws_access_key_id`, `aws_secret_access_key`, `aws_session_token`) y configure la CLI.
     ```bash
     aws configure
@@ -49,7 +50,7 @@ Despliega el recurso de base de datos.
 2.  **Obtener el Nombre de la Tabla:** (Actualizar `ecs-params.json` con este valor).
     ```bash
     aws cloudformation describe-stacks 
-      --stack-name BDD-Stack-P1 
+      --stack-name bdd-stack-p1 
       --query "Stacks[0].Outputs[?OutputKey=='TableName'].OutputValue" 
       --output text
     ```
@@ -90,9 +91,9 @@ Despliegue de los recursos de computación (ECS Fargate), balanceo de carga (NLB
 1.  **Desplegar la Pila Completa (CloudFormation):**
     ```bash
     aws cloudformation create-stack 
-      --stack-name ECS-Stack-P1 
-      --template-body file://config/main.yml 
-      --parameters file://config/main-params.json 
+      --stack-name ecs-stack-p1 
+      --template-body file://config/ecs.yml 
+      --parameters file://config/ecs-params.json 
       --region $REGION 
     aws cloudformation wait stack-create-complete --stack-name ECS-Stack-P1 --region $REGION
     ```
