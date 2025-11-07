@@ -5,7 +5,11 @@ from typing import List, Optional, Dict # Importamos Dict para el PUT
 from backend.db.repository_base import CharacterRepository
 from model.character import Character
 
-TABLE_NAME = os.getenv('DYNAMODB_TABLE_NAME', 'Characters')
+TABLE_NAME = os.getenv('DYNAMODB_TABLE_NAME') 
+
+if not TABLE_NAME:
+    # Lanza un error claro si la configuración de ECS falló
+    raise RuntimeError("La variable de entorno DYNAMODB_TABLE_NAME no está configurada en el contenedor ECS.")
 
 class DynamoDBCharacterRepository(CharacterRepository):
     

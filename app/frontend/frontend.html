@@ -539,8 +539,17 @@
         }
 
         if (!response || !response.ok) {
-            const error = await response.json().catch(() => ({ error: 'Error desconocido' }));
-            throw new Error(error.error || `Error en la API: ${response?.status || 'desconocido'}.`);
+            // Intenta leer el cuerpo de error si está disponible
+            let errorText = await response.text();
+            let errorMessage = `Error en la API: ${response?.status || 'desconocido'}. Detalles: ${errorText}`;
+            
+            try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage = errorJson.error || errorJson.message || errorMessage;
+            } catch (e) {
+                // Si no es JSON, usa el texto crudo.
+            }
+            throw new Error(errorMessage);
         }
 
         if (method === 'DELETE') {
@@ -555,7 +564,17 @@
             showLoading(true);
             hideError();
             
-            characters = await apiRequest('/characters'); 
+            const rawCharacters = await apiRequest('/characters'); 
+            
+            // --- CORRECCIÓN: Normalizar la clave de ID ---
+            // Aseguramos que el ID sea siempre 'character_id' para el frontend,
+            // ya que la API puede devolver 'id' (POST/PUT) o 'character_id' (GET).
+            characters = rawCharacters.map(char => ({
+                ...char,
+                character_id: char.character_id || char.id 
+            }));
+            // ---------------------------------------------
+
             renderBoard();
         } catch (error) {
             showError(`Error al cargar personajes: ${error.message}`);
@@ -593,6 +612,8 @@
         const card = document.createElement('div');
         card.className = 'card';
         card.draggable = false; 
+        
+        // Aquí usamos la propiedad character_id, que ahora está normalizada
         card.dataset.characterId = character.character_id; 
         
         const metaInfo = `Linaje: ${character.raza}`;
@@ -605,7 +626,7 @@
             <div class="card-meta">
                 <span class="level-badge ${badgeClass}">NIVEL ${character.nivel}</span>
             </div>
-            <div class="card-tags">Registro: ${creationDate}</div>
+            <div class="card-tags">ID: ${character.character_id} | Registro: ${creationDate}</div>
             <div class="card-actions">
                 <button class="btn btn-primary" onclick="event.stopPropagation(); editCharacter('${character.character_id}')">✏️ Editar</button>
                 <button class="btn btn-secondary" onclick="event.stopPropagation(); deleteCharacter('${character.character_id}')">🗑️ Eliminar</button>
@@ -613,7 +634,7 @@
         `;
 
         return card;
-    }    
+    }    
     async function updateCharacterClase(characterId, newClase) {
         const character = characters.find(c => c.character_id === characterId);
         
@@ -679,12 +700,22 @@
             showLoading(true);
             let result;
             if (currentCharacterId) {
+                // PUT usa el ID normalizado
                 result = await apiRequest(`/characters/${currentCharacterId}`, 'PUT', data);
                 const index = characters.findIndex(c => c.character_id === currentCharacterId);
-                characters[index] = result;
+                
+                // Normalizar la respuesta del PUT también, por si devuelve 'id'
+                const normalizedResult = { ...result, character_id: result.character_id || result.id };
+
+                characters[index] = normalizedResult;
             } else {
+                // POST
                 result = await apiRequest('/characters', 'POST', data);
-                characters.push(result);
+                
+                // Normalizar la respuesta del POST antes de añadirla a la lista
+                const normalizedResult = { ...result, character_id: result.character_id || result.id };
+                
+                characters.push(normalizedResult);
             }
 
             renderBoard();

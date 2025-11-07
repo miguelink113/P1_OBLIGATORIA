@@ -6,10 +6,10 @@ import sys
 # ⚠️ IMPORTANTE: REEMPLAZA LOS VALORES CON LOS OUTPUTS DE TU STACK DE CLOUDFORMATION.
 
 # 1. URL BASE de la API Gateway (Ej: https://abcdef123.execute-api.us-east-1.amazonaws.com/prod)
-BASE_URL = "https://q1qwym1fqe.execute-api.us-east-1.amazonaws.com/prod" 
+BASE_URL = "https://6wh6fxb8be.execute-api.us-east-1.amazonaws.com/prod" 
 
 # 2. HEADER: La clave de API para autenticar la petición.
-API_KEY_VALUE = "Q6WqRrZtyQ2kAxGUKqu235wKPEuru2229lZvMQaP"
+API_KEY_VALUE = "dkKi8GK9zh1OdmTiY3L7596MGMNMmviI5evznWS4"
 
 # 3. ENDPOINT/RECURSO: La ruta base que definiste en tu OpenAPI (ej. /characters).
 # **NO** incluyas el nombre del stack ni el stage.

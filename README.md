@@ -41,7 +41,7 @@ Despliega el recurso de base de datos.
 1.  **Desplegar la Pila de BDD (CloudFormation):**
     ```bash
     aws cloudformation create-stack 
-      --stack-name BDD-Stack-P1 
+      --stack-name bdd-stack-p1 
       --template-body file://config/bd_dynamodb.yml
       --region $REGION 
     aws cloudformation wait stack-create-complete --stack-name BDD-Stack-P1 --region $REGION
@@ -50,7 +50,7 @@ Despliega el recurso de base de datos.
     ```bash
     aws cloudformation describe-stacks 
       --stack-name BDD-Stack-P1 
-      --query "Stacks[0].Outputs[?OutputKey=='DynamoDBTableName'].OutputValue" 
+      --query "Stacks[0].Outputs[?OutputKey=='TableName'].OutputValue" 
       --output text
     ```
 
@@ -100,36 +100,36 @@ Despliegue de los recursos de computación (ECS Fargate), balanceo de carga (NLB
     * **2.1. URL Base de la API Gateway:** (URL pública para testing)
         ```bash
         aws cloudformation describe-stacks 
-          --stack-name ECS-Stack-P1 
+          --stack-name ecs-stack-p1 
           --query "Stacks[0].Outputs[?OutputKey=='CharacterApiUrl'].OutputValue"
           --output text
         ```
     * **2.2. ID de la API Key:** (Necesario para obtener el valor secreto en la Consola)
         ```bash
         aws cloudformation describe-stacks 
-          --stack-name ECS-Stack-P1 
+          --stack-name ecs-stack-p1 
           --query "Stacks[0].Outputs[?OutputKey=='ApiKeyId'].OutputValue" 
           --output text
         ```
     * **2.3. Valor secreto de la API Key:** (x-api-key)
         ```bash
-            aws apigateway get-api-key
-            --api-key a1b2c3d4e5
-            --include-value true
-            --query 'value'
-            --output text
+        aws apigateway get-api-key
+        --api-key a1b2c3d4e5
+        --include-value
+        --query 'value'
+        --output text
         ```
     * **2.4. DNS del Load Balancer (Interno):** (Para verificación interna, opcional)
         ```bash
         aws cloudformation describe-stacks 
-          --stack-name ECS-Stack-P1 
+          --stack-name ecs-stack-p1 
           --query "Stacks[0].Outputs[?OutputKey=='CharacterNlbDnsName'].OutputValue" 
           --output text
         ```
 
 ### SECCIÓN 4: Pruebas Funcionales (CRUD)
 
-Utilice la **CharacterApiUrl** y el valor secreto de la **API Key** (en el header `x-api-key`) para verificar el correcto funcionamiento de las operaciones CRUD (POST, GET, PUT, DELETE) mediante el script de `test/test_api_cycle.py` (prueba los 5 endpoints establecidos de manera automática) o mediante la interfaz gráfica y a mano tras conectar con la API `frontend/frontend.html`
+Utilice la **CharacterApiUrl** y el valor secreto de la **API Key secreta** (en el header `x-api-key`) para verificar el correcto funcionamiento de las operaciones CRUD (POST, GET, PUT, DELETE) mediante el script de `test/test_api_cycle.py` (prueba los 5 endpoints establecidos de manera automática) o mediante la interfaz gráfica y a mano tras conectar con la API `frontend/frontend.html`
 
 ### SECCIÓN 5: Limpieza de Recursos
 
