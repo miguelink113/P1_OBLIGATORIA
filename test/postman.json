@@ -8,43 +8,19 @@
 	},
 	"item": [
 		{
-			"name": "Get Characters",
-			"request": {
-				"method": "GET",
-				"header": [
-					{
-						"key": "x-api-key",
-						"value": "dkKi8GK9zh1OdmTiY3L7596MGMNMmviI5evznWS4",
-						"type": "text"
-					}
-				],
-				"url": {
-					"raw": "{{baseURL}}/prod/characters",
-					"host": [
-						"{{baseURL}}"
-					],
-					"path": [
-						"prod",
-						"characters"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Create Character",
 			"request": {
 				"method": "POST",
 				"header": [
 					{
 						"key": "x-api-key",
-						"value": "dkKi8GK9zh1OdmTiY3L7596MGMNMmviI5evznWS4",
+						"value": "PVnFbJ2hsW64sbN03rzBd9n4wDCMWPMy6zzAdGTP",
 						"type": "text"
 					}
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"nombre\": \"Frodo\",\r\n    \"raza\": \"Mediano\",\r\n    \"clase\": \"Pícaro\",\r\n    \"nivel\": 3\r\n}",
+					"raw": "{\r\n    \"nombre\": \"Thorfin\",\r\n    \"raza\": \"Humano\",\r\n    \"clase\": \"Guerrero\",\r\n    \"nivel\": 15\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -52,12 +28,11 @@
 					}
 				},
 				"url": {
-					"raw": "{{baseURL}}/prod/characters",
+					"raw": "{{baseURL}}/characters",
 					"host": [
 						"{{baseURL}}"
 					],
 					"path": [
-						"prod",
 						"characters"
 					]
 				}
@@ -65,23 +40,22 @@
 			"response": []
 		},
 		{
-			"name": "Delete Character",
+			"name": "Get Character",
 			"request": {
-				"method": "DELETE",
+				"method": "GET",
 				"header": [
 					{
 						"key": "x-api-key",
-						"value": "dkKi8GK9zh1OdmTiY3L7596MGMNMmviI5evznWS4",
+						"value": "PVnFbJ2hsW64sbN03rzBd9n4wDCMWPMy6zzAdGTP",
 						"type": "text"
 					}
 				],
 				"url": {
-					"raw": "{{baseURL}}/prod/characters/{{character_id}}",
+					"raw": "{{baseURL}}/characters/{{character_id}}",
 					"host": [
 						"{{baseURL}}"
 					],
 					"path": [
-						"prod",
 						"characters",
 						"{{character_id}}"
 					]
@@ -96,7 +70,7 @@
 				"header": [
 					{
 						"key": "x-api-key",
-						"value": "dkKi8GK9zh1OdmTiY3L7596MGMNMmviI5evznWS4",
+						"value": "PVnFbJ2hsW64sbN03rzBd9n4wDCMWPMy6zzAdGTP",
 						"type": "text"
 					}
 				],
@@ -110,12 +84,58 @@
 					}
 				},
 				"url": {
-					"raw": "{{baseURL}}/prod/characters/{{character_id}}",
+					"raw": "{{baseURL}}/characters/{{character_id}}",
 					"host": [
 						"{{baseURL}}"
 					],
 					"path": [
-						"prod",
+						"characters",
+						"{{character_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Characters",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "PVnFbJ2hsW64sbN03rzBd9n4wDCMWPMy6zzAdGTP",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseURL}}/characters",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
+						"characters"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Character",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "PVnFbJ2hsW64sbN03rzBd9n4wDCMWPMy6zzAdGTP",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{baseURL}}/characters/{{character_id}}",
+					"host": [
+						"{{baseURL}}"
+					],
+					"path": [
 						"characters",
 						"{{character_id}}"
 					]

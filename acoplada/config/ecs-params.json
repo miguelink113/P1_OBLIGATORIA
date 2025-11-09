@@ -1,7 +1,7 @@
 [
     {
         "ParameterKey": "EcrRepositoryUri",
-        "ParameterValue": "767398154780.dkr.ecr.us-east-1.amazonaws.com/characters-app-ecr-stack-p1:latest"
+        "ParameterValue": "767398154780.dkr.ecr.us-east-1.amazonaws.com/characters-app-ecr-stack-p1"
     },
     {
         "ParameterKey": "VpcId",
@@ -14,5 +14,9 @@
     {
         "ParameterKey": "DynamoDBTableName",
         "ParameterValue": "Characters-bdd-stack-p1" 
+    },
+    {
+        "ParameterKey": "VpcCidr",
+        "ParameterValue": "172.31.0.0/16"
     }
 ]

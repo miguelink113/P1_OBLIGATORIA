@@ -21,6 +21,11 @@ Parameters:
     Description: Table Name of DynamoDB for Characters
     Default: "Characters"
 
+  VpcCidr:
+      Type: String
+      Description: Restringe el acceso al Security group del ECS
+      AllowedPattern: '(\d{1,3}).(\d{1,3}).(\d{1,3}).(\d{1,3})/(\d{1,2})'
+
 # Define los recursos a crear (ECS Fargate, NLB, API Gateway, etc.)
 Resources:
   # Grupo de seguridad para las tareas ECS
@@ -33,7 +38,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref VpcCidr
 
   # Network Load Balancer para enrutar el tráfico a las tareas ECS
   NetworkLoadBalancer:
