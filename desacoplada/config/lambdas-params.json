@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "DynamoDBTableName",
+    "ParameterValue": "Characters-bdd-stack-p1"
+  },
+  {
+    "ParameterKey": "LabRoleArn",
+    "ParameterValue": "arn:aws:iam::767398154780:role/LabRole"
+  },
+  {
+    "ParameterKey": "S3Bucket",
+    "ParameterValue": "characters-lambda-bucket"
+  },
+  {
+    "ParameterKey": "S3Key",
+    "ParameterValue": "characters_lambda_package.zip"
+  }
+]

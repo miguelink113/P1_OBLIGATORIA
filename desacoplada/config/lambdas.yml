@@ -1,0 +1,360 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "API Characters (Desacoplada) con API Key, DynamoDB y código Lambda desde S3."
+
+Parameters:
+  DynamoDBTableName:
+    Type: String
+    Description: "Nombre de la tabla DynamoDB que las Lambdas deben usar."
+  LabRoleArn:
+    Type: String
+    Description: "ARN del rol de ejecución para las Lambdas (LabRole)."
+  S3Bucket:
+    Type: String
+    Description: "Nombre del bucket S3 donde está el paquete de código (zip)."
+  S3Key:
+    Type: String
+    Description: "Nombre del zip (key) dentro del bucket S3 (ej: backend.zip)."
+
+Resources:
+
+  # ==============================
+  # 1. LAMBDA FUNCTIONS (Code from S3)
+  # ==============================
+
+  LambdaCreateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "characters-create"
+      Runtime: python3.11
+      Handler: create_handler.lambda_handler
+      Role: !Ref LabRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTableName
+
+  LambdaGetAllFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "characters-get-all"
+      Runtime: python3.11
+      Handler: get_all_handler.lambda_handler
+      Role: !Ref LabRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTableName
+
+  LambdaGetIdFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "characters-get-id"
+      Runtime: python3.11
+      Handler: get_id_handler.lambda_handler
+      Role: !Ref LabRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTableName
+
+  LambdaUpdateFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "characters-update"
+      Runtime: python3.11
+      Handler: update_handler.lambda_handler
+      Role: !Ref LabRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTableName
+
+  LambdaDeleteFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "characters-delete"
+      Runtime: python3.11
+      Handler: delete_handler.lambda_handler
+      Role: !Ref LabRoleArn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTableName
+
+  # ==============================
+  # 2. API GATEWAY SETUP
+  # ==============================
+
+  RestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "Characters-Lambda-API"
+      Description: "API para la gestión de personajes (S3-based)"
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  CharactersResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !GetAtt RestAPI.RootResourceId
+      PathPart: "characters"
+
+  CharacterIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref RestAPI
+      ParentId: !Ref CharactersResource
+      PathPart: "{id}"
+
+  # --- Métodos y Integraciones ---
+  # POST /characters
+  PostCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: true # REQUIERE API KEY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCreateFunction.Arn}/invocations
+
+  # GET /characters
+  GetCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      ApiKeyRequired: true # REQUIERE API KEY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaGetAllFunction.Arn}/invocations
+
+  # GET /characters/{id}
+  GetCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      ApiKeyRequired: true # REQUIERE API KEY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaGetIdFunction.Arn}/invocations
+
+  # PUT /characters/{id}
+  PutCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: PUT
+      AuthorizationType: NONE
+      ApiKeyRequired: true # REQUIERE API KEY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaUpdateFunction.Arn}/invocations
+
+  # DELETE /characters/{id}
+  DeleteCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: DELETE
+      AuthorizationType: NONE
+      ApiKeyRequired: true # REQUIERE API KEY
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaDeleteFunction.Arn}/invocations
+
+  # --- CORS OPTIONS Methods ---
+  OptionsCharactersMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharactersResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired: false # OPTIONS no requiere API Key
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,GET,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  OptionsCharacterIdMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref RestAPI
+      ResourceId: !Ref CharacterIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      ApiKeyRequired: false # OPTIONS no requiere API Key
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,GET,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+
+  # ==============================
+  # 3. DEPLOYMENT & PERMISSIONS
+  # ==============================
+
+  APIDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - PostCharactersMethod
+      - GetCharactersMethod
+      - GetCharacterIdMethod
+      - PutCharacterIdMethod
+      - DeleteCharacterIdMethod
+      - OptionsCharactersMethod
+      - OptionsCharacterIdMethod
+    Properties:
+      RestApiId: !Ref RestAPI
+
+  ApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref RestAPI
+      DeploymentId: !Ref APIDeployment
+      StageName: prod
+
+  # --- Permisos Lambda ---
+  LambdaInvokePermissionCreate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaCreateFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/POST/characters
+
+  LambdaInvokePermissionGetAll:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaGetAllFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/GET/characters
+
+  LambdaInvokePermissionGetId:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaGetIdFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/GET/characters/{id}
+
+  LambdaInvokePermissionUpdate:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaUpdateFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/PUT/characters/{id}
+
+  LambdaInvokePermissionDelete:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaDeleteFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${RestAPI}/*/DELETE/characters/{id}
+
+  # ==============================
+  # 4. API KEY & USAGE PLAN
+  # ==============================
+  
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Name: characters-lambda-api-key
+      Enabled: true
+
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      UsagePlanName: characters-lambda-usage-plan
+      ApiStages:
+        - ApiId: !Ref RestAPI
+          Stage: !Ref ApiStage
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
+
+Outputs:
+  ApiUrl:
+    Description: "URL base de la API (Stage: prod)"
+    Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
+    Export:
+      Name: CharactersApiUrl
+
+  ApiKeyValue:
+    Description: "Valor de la API Key para consumir la API (Header: x-api-key)"
+    Value: !Ref ApiKey
+    Export:
+      Name: CharactersApiKey

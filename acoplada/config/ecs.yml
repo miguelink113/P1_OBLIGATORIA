@@ -117,7 +117,7 @@ Resources:
       Cluster: !Ref EcsCluster
       ServiceName: !Sub "characters-service-${AWS::StackName}"
       TaskDefinition: !Ref EcsTaskDefinition
-      DesiredCount: 2
+      DesiredCount: 1
       LaunchType: FARGATE
       DeploymentConfiguration:
         MaximumPercent: 200
