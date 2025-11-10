@@ -21,7 +21,6 @@ HEADERS = {
     "Content-Type": "application/json"
 }
 
-# --- DATOS DE PRUEBA ---
 INITIAL_CHARACTER_DATA = {
     "nombre": "TestSubject",
     "raza": "Mediano",
@@ -29,9 +28,7 @@ INITIAL_CHARACTER_DATA = {
     "nivel": 3
 }
 
-# Variable para almacenar el ID creado durante la prueba
 CREATED_ID = None
-# -------------------------
 
 def check_config():
     """Verifica que la configuración crítica se ha actualizado."""
@@ -45,13 +42,10 @@ def create_character():
     global CREATED_ID
     
     try:
-        # Usa el encabezado de autenticación
         response = requests.post(f"{BASE_URL}{ENDPOINT}", json=INITIAL_CHARACTER_DATA, headers=HEADERS)
         response.raise_for_status() # Lanza excepción para códigos 4xx o 5xx
         
         data = response.json()
-        # **NOTA: Asume que el ID se devuelve con la clave 'id' o 'character_id'.
-        # Ajusta esta clave si tu API usa otra (ej. 'ID' o 'id').**
         CREATED_ID = data.get('id') or data.get('character_id')
         
         if CREATED_ID:
@@ -94,8 +88,8 @@ def update_character():
         
     print(f"\n--- 3. PUT: Actualizando personaje {CREATED_ID} ---")
     update_payload = {
-        "nivel": 10,  # Sube de nivel!
-        "clase": "Bardo" # Cambio de clase
+        "nivel": 10,
+        "clase": "Bardo"
     }
     
     try:
@@ -104,7 +98,6 @@ def update_character():
         
         data = response.json()
         
-        # Verificar la actualización
         if data.get('nivel') == 10 and data.get('clase') == "Bardo":
             print(f"✅ ÉXITO: Personaje actualizado. Nuevo nivel: {data.get('nivel')}.")
         else:
@@ -144,7 +137,6 @@ def delete_character():
         if response.status_code in [200, 204]:
             print(f"✅ ÉXITO: Personaje {CREATED_ID} eliminado correctamente.")
         
-        # Comprobación final
         check_response = requests.get(f"{BASE_URL}{ENDPOINT}/{CREATED_ID}", headers=HEADERS)
         if check_response.status_code == 404:
              print("✅ LIMPIEZA CONFIRMADA: Personaje ya no existe (404).")
@@ -154,7 +146,6 @@ def delete_character():
     except requests.exceptions.RequestException as e:
         print(f"❌ ERROR en DELETE: {e}")
 
-# --- EJECUCIÓN ---
 if __name__ == "__main__":
     check_config()
     if create_character():

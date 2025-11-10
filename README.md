@@ -6,6 +6,19 @@ Este repositorio contiene la aplicación desarrollada para la Práctica Obligato
 
 - Versión desacoplada basada en el patrón CRUD Puro, implementada como cinco funciones AWS Lambda (una por operación CRUD), con el código almacenado en un bucket de S3 y expuestas a través de API Gateway..
 
+## 📋 Esquema de las Arquitecturas de Despliegue
+La principal diferencia radica en cómo se gestionan la lógica de la aplicación y la exposición de los endpoints.
+
+### 1️⃣ Versión Monolítica Acoplada (ECS Fargate) 🐋
+Esta arquitectura sigue el patrón de microservicios sobre contenedores, donde el servicio está siempre activo.
+
+<img src="readme_images/diagramaAcoplada.png" alt="Diagrama" width="500">
+
+### 2️⃣ Versión Desacoplada / Serverless (AWS Lambda) ⚡
+Esta arquitectura es completamente serverless y de pago por uso, descomponiendo la aplicación por función (CRUD Puro).
+
+<img src="readme_images/diagramaDesacoplada.png" alt="Diagrama" width="500">
+
 ## 📂 Estructura Completa del Proyecto y Propósito
 
 Esta tabla combina la vista general con la descripción detallada de los directorios específicos de cada arquitectura.
@@ -346,12 +359,24 @@ El despliegue se centra en tres fases: Base de Datos, ECR/Contenedor y, finalmen
 
 ## 💰 Análisis del Costo
 
-| Servicio | Descripción | Costo mensual estimado | Costo anual estimado |
-| :--- | :--- | ---: | ---: |
-| **Amazon DynamoDB (On-Demand)** | Almacén NoSQL para los personajes, con modo pago por solicitud para 100 mil lecturas y escrituras. | USD 0.32 | USD 3.84 |
-| **Amazon ECR (Elastic Container Registry)** | Almacenamiento de las imágenes Docker del servicio de Characters, unos 0.65 GB por mes debido a las dos imágenes de Docker que almacena. | USD 0.07 | USD 0.84 |
-| **Amazon ECS (Fargate)** | Ejecución del contenedor con 2 tareas activas (0.25 vCPU, 0.5 GB RAM). | USD 18.02 | USD 216.24 |
-| **Amazon API Gateway (REST API)** | Interfaz de acceso HTTP a la API Characters. Costos por llamadas (100 mil llamadas ≈ USD 3.50). | USD 0.35 | USD 4.20 |
-| **AWS Network Load Balancer (NLB)** | Balanceo interno del tráfico entre tareas ECS. | USD 16.47 | USD 197.64 |
-| **Total estimado** | Se ha considerado un entorno de desarrollo o de bajo tráfico | **USD 35.23** | **USD 422.76** |
+  ### 1️⃣ Versión Monolítica Acoplada (ECS Fargate) - Estimación de Costos Mensuales y Anuales
 
+  | Servicio | Descripción | Costo mensual estimado | Costo anual estimado |
+  | :--- | :--- | ---: | ---: |
+  | **Amazon DynamoDB (On-Demand)** | Almacén NoSQL para los personajes, con modo pago por solicitud para 100 mil lecturas y escrituras. | USD 0.02 | USD 0.24 |
+  | **Amazon ECR (Elastic Container Registry)** | Almacenamiento de las imágenes Docker del servicio de Characters, unos 0.65 GB por mes debido a las dos imágenes de Docker que almacena. | USD 0.07 | USD 0.84 |
+  | **Amazon ECS (Fargate)** | Ejecución del contenedor con 2 tareas activas (0.25 vCPU, 0.5 GB RAM). | USD  9.01 | USD 108.12 |
+  | **Amazon API Gateway (REST API)** | Interfaz de acceso HTTP a la API Characters. Costos por llamadas (100 mil llamadas ≈ USD 3.50). | USD 0.35 | USD 4.20 |
+  | **AWS Network Load Balancer (NLB)** | Balanceo interno del tráfico entre tareas ECS. | USD 16.47 | USD 197.64 |
+  | **Total estimado** | Se ha considerado un entorno de desarrollo o de bajo tráfico | **USD 25.87** | **USD 310.47** |
+
+  ### 2️⃣ Versión Desacoplada / Serverless (Lambdas) – Estimación de Costos Mensuales y Anuales
+
+  | Servicio | Descripción | Costo mensual estimado | Costo anual estimado |
+  | :--- | :--- | ---: | ---: |
+  | **Amazon DynamoDB (On-Demand)** | Almacén NoSQL para los personajes, con modo pago por solicitud para 100 mil lecturas y escrituras. | USD 0.02 | USD 0.24 |
+  | **Amazon S3** | Almacenamiento del paquete de despliegue Lambda (~50 MB). | USD 0.02 | USD 0.24 |
+  | **AWS Lambda** | Ejecución del contenedor con 1 tarea activa (0.25 vCPU, 0.5 GB RAM). | USD 0.01 | USD 0.12 |
+  | **Amazon API Gateway (REST API)** | Interfaz de acceso HTTP a la API Characters. Costos por llamadas (100 mil llamadas ≈ USD 3.50). | USD 0.35 | USD 4.20 |
+  | **Total estimado** | Se ha considerado un entorno de desarrollo o de bajo tráfico | **USD 0.45** | **USD 5.45** |
+  
